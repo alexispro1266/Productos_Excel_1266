@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ver y Agregar Registros Excel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <style>
+    body { padding: 30px; font-family: Arial, sans-serif; }
+    #tablaExcel th, #tablaExcel td { text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h2>Cargar archivo Excel</h2>
+  <input type="file" id="fileInput" accept=".xlsx" class="form-control-file mb-4">
+
+  <h2>Contenido del archivo</h2>
+  <div id="tablaExcel" class="table-responsive"></div>
+
+  <h2 class="mt-5">Agregar nuevo registro</h2>
+  <form id="formRegistro" class="mb-4">
+    <div class="form-group">
+      <label>ID:</label>
+      <input type="number" name="ID" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label>Producto:</label>
+      <input type="text" name="Producto" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label>Categoría:</label>
+      <input type="text" name="Categoría" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label>Precio:</label>
+      <input type="number" step="0.01" name="Precio" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Agregar</button>
+  </form>
+
+  <button id="btnDescargar" class="btn btn-success">Descargar Excel actualizado</button>
+
+  <script>
+    let datosExcel = [];
+
+    const renderTabla = () => {
+      if (datosExcel.length === 0) return;
+
+      let html = '<table class="table table-bordered"><thead><tr>';
+      datosExcel[0].forEach(col => html += `<th>${col}</th>`);
+      html += '</tr></thead><tbody>';
+
+      for (let i = 1; i < datosExcel.length; i++) {
+        html += '<tr>';
+        datosExcel[i].forEach(cell => html += `<td>${cell}</td>`);
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+
+      document.getElementById('tablaExcel').innerHTML = html;
+    };
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        renderTabla();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('formRegistro').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const nuevoRegistro = [
+        parseInt(formData.get("ID")),
+        formData.get("Producto"),
+        formData.get("Categoría"),
+        parseFloat(formData.get("Precio"))
+      ];
+
+      datosExcel.push(nuevoRegistro);
+      renderTabla();
+      this.reset();
+    });
+
+    document.getElementById('btnDescargar').addEventListener('click', () => {
+      if (datosExcel.length === 0) {
+        alert("Primero debes cargar un archivo Excel.");
+        return;
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(datosExcel);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Registros");
+
+      XLSX.writeFile(wb, "registro_productos_actualizado.xlsx");
+    });
+  </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
